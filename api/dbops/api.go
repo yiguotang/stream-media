@@ -5,6 +5,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"database/sql"
+	"stream-media/api/defs"
+	"stream-media/api/utils"
+	"time"
 )
 
 // 新增用户
@@ -51,6 +54,84 @@ func DeleteUser(loginName string, pwd string) error {
 	}
 
 	_, err = stmtDel.Exec(loginName, pwd)
+	if err != nil {
+		return err
+	}
+
+	defer stmtDel.Close()
+	return nil
+}
+
+// 添加视频
+func AddNewVideo(aid int, name string) (*defs.VideoInfo, error) {
+	// create uuid
+	vid, err := utils.NewUUID();
+	if err != nil {
+		return nil, err
+	}
+
+	t := time.Now()
+	ctime := t.Format("Jan 02 2006, 15:04:05")
+	stmtIns, err := dbConn.Prepare("insert into video_info (id, author_id, name, display_ctime) values (?, ?, ?, ?)")
+	if err != nil {
+		return nil, err
+	}
+
+	// 判断sql执行的结果是否有错误
+	_, err = stmtIns.Exec(vid, aid, name, ctime)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &defs.VideoInfo{
+		Id: vid,
+		AuthorId: aid,
+		Name: name,
+		DisplayCtime: ctime,
+	}
+
+	defer stmtIns.Close()
+	return res, nil
+}
+
+// 查询视频
+func GetVideoInfo(vid string) (*defs.VideoInfo, error) {
+	stmtOut, err := dbConn.Prepare("select author_id, name, display_ctime from video_info where id = ?")
+
+	var aid int
+	var dct string
+	var name string
+
+	err = stmtOut.QueryRow(vid).Scan(&aid, &name, &dct)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
+	}
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	defer stmtOut.Close()
+
+	res := &defs.VideoInfo{
+		Id: vid,
+		AuthorId: aid,
+		Name: name,
+		DisplayCtime: dct,
+	}
+
+	return res, nil
+}
+
+// 删除视频
+func DeleteVideoInfo(vid string) error {
+	stmtDel, err := dbConn.Prepare("delete from video_info where id = ?")
+	if err != nil {
+		log.Printf("delete video error: %s", err)
+		return err
+	}
+
+	_, err = stmtDel.Exec(vid)
 	if err != nil {
 		return err
 	}

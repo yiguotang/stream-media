@@ -1,6 +1,8 @@
 package dbops
 
-import "testing"
+import (
+	"testing"
+)
 
 func clearTables() {
 	dbConn.Exec("truncate users")
@@ -15,6 +17,7 @@ func TestMain(m *testing.M) {
 	clearTables()
 }
 
+// user 的 workflow
 func TestUserWorkFlow(t *testing.T) {
 	t.Run("Add", testAddUser)
 	t.Run("Get", testGetUser)
@@ -55,5 +58,38 @@ func testReGetUser(t *testing.T) {
 
 	if pwd != "" {
 		t.Errorf("deleting user faild")
+	}
+}
+
+// video 的 workflow
+func TestVideoWorkFlow(t *testing.T) {
+	clearTables()
+	t.Run("PreparedUser", testAddUser)
+	t.Run("AddVideo", testAddVideo)
+	t.Run("GetVideo", testGetVideInfo)
+	t.Run("DelVideo", testDeleteVideoInfo)
+	t.Run("ReGetVideo", testGetVideInfo)
+}
+
+var tempVid string
+func testAddVideo(t *testing.T)  {
+	video, err := AddNewVideo(1, "test-video")
+	if err != nil {
+		t.Errorf("error of AddNewVideo: %v", err)
+	}
+	tempVid = video.Id
+}
+
+func testGetVideInfo(t *testing.T)  {
+	_, err := GetVideoInfo(tempVid)
+	if err != nil {
+		t.Errorf("error of GetVideoInfo: %v", err)
+	}
+}
+
+func testDeleteVideoInfo(t *testing.T)  {
+	err := DeleteVideoInfo(tempVid)
+	if err != nil {
+		t.Errorf("error of DeleteVideoInfo: %v", err)
 	}
 }
